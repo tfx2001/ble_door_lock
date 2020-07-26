@@ -116,8 +116,6 @@ class _MainWidgetState extends State<MainWidget> {
     switch (eventJson["event"]) {
       case "EVENT_SCAN_RESULT":
         if (eventJson["value"] != null) {
-          _methodChannel.invokeMethod(
-              "showToast", {'msg': '扫描到设备：${eventJson["value"]}'});
           _methodChannel.invokeMethod('connectGatt');
         } else {
           _methodChannel.invokeMethod("showToast", {'msg': '没有扫描到设备！'});
@@ -125,7 +123,6 @@ class _MainWidgetState extends State<MainWidget> {
         break;
       case "EVENT_CONNECTED":
         _methodChannel.invokeMethod("showToast", {'msg': '连接成功'});
-        sleep(Duration(milliseconds: 600));
         setState(() {
           this.isConnected = true;
         });

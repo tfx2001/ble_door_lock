@@ -58,7 +58,6 @@ public class MainActivity extends FlutterActivity {
     private BluetoothGatt gattClient;
     private BluetoothGattCharacteristic gattCharacteristic;
     private boolean isScanning = false;
-    private boolean foundDevice = false;
 
     @Override
     public void configureFlutterEngine(@NonNull FlutterEngine flutterEngine) {
@@ -120,21 +119,11 @@ public class MainActivity extends FlutterActivity {
             this.handler.postDelayed(() -> {
                 JSONObject jsonObject = new JSONObject();
 
-                this.bleScanner.stopScan(this.scanCallback);
-                this.isScanning = false;
-                try {
-                    jsonObject.put("event", Events.EVENT_SCAN_RESULT);
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-                if (this.foundDevice) {
+                if (this.isScanning) {
+                    this.bleScanner.stopScan(this.scanCallback);
+                    this.isScanning = false;
                     try {
-                        jsonObject.put("value", this.device.getAddress());
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                    }
-                } else {
-                    try {
+                        jsonObject.put("event", Events.EVENT_SCAN_RESULT);
                         jsonObject.put("value", null);
                     } catch (JSONException e) {
                         e.printStackTrace();
@@ -148,7 +137,6 @@ public class MainActivity extends FlutterActivity {
                     .setCallbackType(ScanSettings.CALLBACK_TYPE_FIRST_MATCH)
                     .build(), this.scanCallback);
             this.isScanning = true;
-            this.foundDevice = false;
         }
     }
 
@@ -252,9 +240,17 @@ public class MainActivity extends FlutterActivity {
             JSONObject jsonObject = new JSONObject();
 
             super.onScanResult(callbackType, result);
-            MainActivity.this.foundDevice = true;
-            MainActivity.this.bleScanner.flushPendingScanResults(scanCallback);
+            MainActivity.this.bleScanner.flushPendingScanResults(MainActivity.this.scanCallback);
+            MainActivity.this.bleScanner.stopScan(MainActivity.this.scanCallback);
             MainActivity.this.device = result.getDevice();
+            MainActivity.this.isScanning = false;
+            try {
+                jsonObject.put("event", Events.EVENT_SCAN_RESULT);
+                jsonObject.put("value", MainActivity.this.device.getAddress());
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+            MainActivity.this.eventSink.success(jsonObject.toString());
         }
 
         @Override
@@ -287,13 +283,9 @@ public class MainActivity extends FlutterActivity {
 
             super.onConnectionStateChange(gatt, status, newState);
             if (newState == BluetoothGatt.STATE_CONNECTED) {
-                try {
-                    jsonObject.put("event", Events.EVENT_CONNECTED);
-                    jsonObject.put("value", null);
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-                handler.postDelayed(() -> gattClient.discoverServices(), 600);
+                handler.postDelayed(() -> {
+                    gattClient.discoverServices();
+                }, 600);
             } else if (newState == BluetoothGatt.STATE_DISCONNECTED) {
                 // 连接断开
                 try {
@@ -310,11 +302,19 @@ public class MainActivity extends FlutterActivity {
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
             final UUID serviceUUID = UUID.fromString("00f02981-52a6-8eec-7b56-ef7bfab3f5c1");
             final UUID characteristicUUID = UUID.fromString("01f02981-52a6-8eec-7b56-ef7bfab3f5c1");
+            JSONObject jsonObject = new JSONObject();
 
             super.onServicesDiscovered(gatt, status);
-            Log.d("GattCallback", "onServicesDiscovered: discovered");
+            Log.d("GattCallback", "onServicesDiscovered: service discovered");
             BluetoothGattService gattService = gattClient.getService(serviceUUID);
             MainActivity.this.gattCharacteristic = gattService.getCharacteristic(characteristicUUID);
+            try {
+                jsonObject.put("event", Events.EVENT_CONNECTED);
+                jsonObject.put("value", null);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+            MainActivity.this.handler.post(() -> MainActivity.this.eventSink.success(jsonObject.toString()));
         }
 
         @Override
