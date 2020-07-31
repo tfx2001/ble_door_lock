@@ -34,7 +34,7 @@ static esp_ble_adv_data_t door_lock_adv_config = {
     .include_name        = false,
     .manufacturer_len    = sizeof(manufacturer_data),
     .p_manufacturer_data = (uint8_t *)manufacturer_data,
-    .flag                = ESP_BLE_ADV_FLAG_GEN_`DISC,  // Generic discover
+    .flag                = ESP_BLE_ADV_FLAG_GEN_DISC,  // Generic discover
 };
 
 /* 广播参数 */;
