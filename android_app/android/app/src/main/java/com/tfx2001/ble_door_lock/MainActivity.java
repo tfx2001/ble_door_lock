@@ -88,8 +88,6 @@ public class MainActivity extends FlutterActivity {
         this.handler = new Handler();
         // 蓝牙适配器
         this.bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        // BLE 扫描器
-        this.bleScanner = bluetoothAdapter.getBluetoothLeScanner();
         // callback 对象
         this.scanCallback = new ScanCallbackImpl();
         this.gattCallback = new BluetoothGattCallbackImpl();
@@ -115,6 +113,7 @@ public class MainActivity extends FlutterActivity {
         } else if (this.isScanning) {
             Toast.makeText(this, "扫描进行中...", Toast.LENGTH_SHORT).show();
         } else {
+            this.bleScanner = this.bluetoothAdapter.getBluetoothLeScanner();
             // 2s 后停止扫描
             this.handler.postDelayed(() -> {
                 JSONObject jsonObject = new JSONObject();
